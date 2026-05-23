@@ -526,55 +526,86 @@ runAfterDomReady(() => {
     if (!window.__albamenHistory) window.__albamenHistory = [];
     const chatHistory = window.__albamenHistory;
 
-    // ── Voice synthesis (superhero voice via Web Speech API) ──
+    // ── Voice synthesis — Google Cloud TTS (мудрый учитель) ──
+    const ALBAMEN_WORKER_TTS = 'https://divine-flower-a0ae.nncdecdgc.workers.dev';
+    let _ttsAudio = null; // текущий аудио-объект
+
     function speakAlbamen(text) {
-      if (!window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
+      // Очищаем текст от эмодзи и мусора
       const clean = text
-        .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')  // remove emoji
+        .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
         .replace(/[🚀🌌👨‍🚀⭐🛸💫🌟]/g, '')
         .replace(/<[^>]+>/g, '')
-        .replace(/https?:\/\/\S+/g, '')           // remove URLs
+        .replace(/https?:\/\/\S+/g, '')
         .replace(/\n+/g, ' ')
         .trim();
       if (!clean) return;
 
-      const trySpeak = () => {
-        const voices = window.speechSynthesis.getVoices();
-        const utt = new SpeechSynthesisUtterance(clean);
-
-        // Detect language from text
-        const isRu = /[а-яёА-ЯЁ]/.test(clean);
-        const isTr = /[ğışüöçĞİŞÜÖÇ]/.test(clean) && !isRu;
-
-        if (isRu) utt.lang = 'ru-RU';
-        else if (isTr) utt.lang = 'tr-TR';
-        else utt.lang = 'en-US';
-
-        // Pick deepest male voice for the current language
-        const preferred = voices.find(v =>
-          v.lang.startsWith(utt.lang.slice(0, 2)) &&
-          /male|david|mark|jorge|dmitri|yuri|ivan|ali|ahmet/i.test(v.name) &&
-          !/female|zira|monica/i.test(v.name)
-        ) || voices.find(v =>
-          v.lang.startsWith(utt.lang.slice(0, 2)) &&
-          !/female|zira|monica/i.test(v.name)
-        ) || voices.find(v => !/female|zira|monica/i.test(v.name))
-          || voices[0];
-
-        if (preferred) utt.voice = preferred;
-        utt.pitch  = 0.70;   // deep = superhero
-        utt.rate   = 0.90;   // slightly slower = dramatic
-        utt.volume = 1;
-        window.speechSynthesis.speak(utt);
-      };
-
-      // Chrome loads voices async — wait if needed
-      if (window.speechSynthesis.getVoices().length > 0) {
-        trySpeak();
-      } else {
-        window.speechSynthesis.addEventListener('voiceschanged', trySpeak, { once: true });
+      // Останавливаем предыдущее воспроизведение
+      if (_ttsAudio) {
+        _ttsAudio.pause();
+        _ttsAudio = null;
       }
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+      // Определяем язык по тексту
+      const isRuText = /[а-яёА-ЯЁ]/.test(clean);
+      const isTrText = /[ğışüöçĞİŞÜÖÇ]/.test(clean) && !isRuText;
+      const lang = isRuText ? 'ru' : isTrText ? 'tr' : (isEn ? 'en' : 'tr');
+
+      // Запрашиваем Google TTS через воркер
+      fetch(`${ALBAMEN_WORKER_TTS}/tts`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: clean.slice(0, 800), language: lang })
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('TTS HTTP ' + res.status);
+          return res.json();
+        })
+        .then(data => {
+          if (!data.audioBase64) throw new Error('No audio');
+
+          // base64 → Blob → Audio
+          const binary = atob(data.audioBase64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          const blob = new Blob([bytes], { type: 'audio/mpeg' });
+          const url = URL.createObjectURL(blob);
+
+          _ttsAudio = new Audio(url);
+
+          // Анимация аватара во время речи
+          _ttsAudio.onplay = () => {
+            const avatar = document.getElementById('ai-avatar-trigger');
+            if (avatar) avatar.classList.add('speaking');
+          };
+          _ttsAudio.onended = () => {
+            URL.revokeObjectURL(url);
+            _ttsAudio = null;
+            const avatar = document.getElementById('ai-avatar-trigger');
+            if (avatar) avatar.classList.remove('speaking');
+          };
+          _ttsAudio.onerror = () => {
+            URL.revokeObjectURL(url);
+            _ttsAudio = null;
+            _speakFallback(clean, lang);
+          };
+
+          _ttsAudio.play().catch(() => _speakFallback(clean, lang));
+        })
+        .catch(() => _speakFallback(clean, lang));
+    }
+
+    // Фолбэк на браузерный голос если Google TTS недоступен
+    function _speakFallback(clean, lang) {
+      if (!window.speechSynthesis) return;
+      const utt = new SpeechSynthesisUtterance(clean);
+      utt.lang = lang === 'ru' ? 'ru-RU' : lang === 'en' ? 'en-US' : 'tr-TR';
+      utt.pitch  = 0.70;
+      utt.rate   = 0.90;
+      utt.volume = 1;
+      window.speechSynthesis.speak(utt);
     }
 
     function sendMessage() {
@@ -2121,19 +2152,64 @@ function injectUnifiedAiWidget() {
                   localStorage.setItem('albamen_user_age', data.saveAge.trim());
                 }
 
-                // Speak the response
-                if (window.speechSynthesis) {
-                  const utterance = new SpeechSynthesisUtterance(data.reply);
-                  utterance.lang = isEn ? 'en-US' : isRu ? 'ru-RU' : 'tr-TR';
-                  utterance.onstart = () => {
-                    if (voiceElements.avatarVoice) voiceElements.avatarVoice.classList.add('glow');
-                  };
-                  utterance.onend = () => {
-                    if (voiceElements.avatarVoice) voiceElements.avatarVoice.classList.remove('glow');
-                    if (voiceElements.voiceStatusEl) voiceElements.voiceStatusEl.textContent = strings.initialStatus;
-                  };
-                  window.speechSynthesis.speak(utterance);
-                }
+                // Speak the response — Google TTS
+                (function speakVoiceReply(replyText) {
+                  const cleanReply = replyText
+                    .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')
+                    .replace(/[🚀🌌👨‍🚀⭐🛸💫🌟]/g, '')
+                    .replace(/<[^>]+>/g, '')
+                    .replace(/https?:\/\/\S+/g, '')
+                    .replace(/\n+/g, ' ')
+                    .trim();
+                  if (!cleanReply) return;
+
+                  const voiceLang = isEn ? 'en' : isRu ? 'ru' : 'tr';
+
+                  if (voiceElements.avatarVoice) voiceElements.avatarVoice.classList.add('glow');
+
+                  fetch('https://divine-flower-a0ae.nncdecdgc.workers.dev/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: cleanReply.slice(0, 800), language: voiceLang })
+                  })
+                    .then(r => r.ok ? r.json() : Promise.reject('TTS ' + r.status))
+                    .then(ttsData => {
+                      if (!ttsData.audioBase64) throw new Error('No audio');
+                      const bin = atob(ttsData.audioBase64);
+                      const buf = new Uint8Array(bin.length);
+                      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+                      const blob = new Blob([buf], { type: 'audio/mpeg' });
+                      const audioUrl = URL.createObjectURL(blob);
+                      const aud = new Audio(audioUrl);
+                      aud.onended = () => {
+                        URL.revokeObjectURL(audioUrl);
+                        if (voiceElements.avatarVoice) voiceElements.avatarVoice.classList.remove('glow');
+                        if (voiceElements.voiceStatusEl) voiceElements.voiceStatusEl.textContent = strings.initialStatus;
+                      };
+                      aud.onerror = () => {
+                        URL.revokeObjectURL(audioUrl);
+                        if (voiceElements.avatarVoice) voiceElements.avatarVoice.classList.remove('glow');
+                      };
+                      aud.play().catch(() => {
+                        if (voiceElements.avatarVoice) voiceElements.avatarVoice.classList.remove('glow');
+                      });
+                    })
+                    .catch(() => {
+                      // фолбэк браузерный
+                      if (window.speechSynthesis) {
+                        const utt = new SpeechSynthesisUtterance(cleanReply);
+                        utt.lang = isEn ? 'en-US' : isRu ? 'ru-RU' : 'tr-TR';
+                        utt.pitch = 0.70; utt.rate = 0.90;
+                        utt.onend = () => {
+                          if (voiceElements.avatarVoice) voiceElements.avatarVoice.classList.remove('glow');
+                          if (voiceElements.voiceStatusEl) voiceElements.voiceStatusEl.textContent = strings.initialStatus;
+                        };
+                        window.speechSynthesis.speak(utt);
+                      } else {
+                        if (voiceElements.avatarVoice) voiceElements.avatarVoice.classList.remove('glow');
+                      }
+                    });
+                })(data.reply);
               }
             })
             .catch(err => {
