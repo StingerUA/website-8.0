@@ -634,12 +634,65 @@
         });
       });
 
-      // Optional: Button click handler
-      if(playBtn) {
-        playBtn.addEventListener('click', () => {
-          alert('Ses dosyası oynatılıyor... (Demo)');
+      // Sesli Dinle — Google TTS через albamen-tts.js
+      if (playBtn) {
+        playBtn.addEventListener('click', async function () {
+          const title = titleEl ? titleEl.textContent : '';
+          const desc  = descEl  ? descEl.textContent  : '';
+          const textToSpeak = `${title}. ${desc}`;
+
+          // Если уже говорит — останавливаем
+          if (window.albamenIsSpeaking && window.albamenIsSpeaking()) {
+            if (window.albamenStopSpeaking) window.albamenStopSpeaking();
+            playBtn.textContent = 'Sesli Dinle';
+            playBtn.style.background = '#1e3a8a';
+            return;
+          }
+
+          // Показываем загрузку
+          playBtn.textContent = 'Yükleniyor...';
+          playBtn.style.background = '#374151';
+          playBtn.disabled = true;
+
+          try {
+            await window.albamenSpeak(textToSpeak, 'tr');
+            playBtn.textContent = '⏹ Durdur';
+            playBtn.style.background = '#7c3aed';
+            playBtn.disabled = false;
+
+            // Через 30 сек сбрасываем кнопку на случай если не сработал onended
+            setTimeout(() => {
+              playBtn.textContent = 'Sesli Dinle';
+              playBtn.style.background = '#1e3a8a';
+            }, 30000);
+          } catch(e) {
+            playBtn.textContent = 'Sesli Dinle';
+            playBtn.style.background = '#1e3a8a';
+            playBtn.disabled = false;
+          }
+        });
+
+        // Сбрасываем кнопку когда аудио заканчивается
+        document.addEventListener('albamenTtsDone', function() {
+          if (playBtn) {
+            playBtn.textContent = 'Sesli Dinle';
+            playBtn.style.background = '#1e3a8a';
+            playBtn.disabled = false;
+          }
         });
       }
+
+      // Стоп при смене планеты
+      planets.forEach(planet => {
+        planet.addEventListener('click', function() {
+          if (window.albamenStopSpeaking) window.albamenStopSpeaking();
+          if (playBtn) {
+            playBtn.textContent = 'Sesli Dinle';
+            playBtn.style.background = '#1e3a8a';
+            playBtn.disabled = false;
+          }
+        });
+      });
 
 
       // ===========================
@@ -716,5 +769,8 @@
           });
       }
   </script>
+
+<!-- Google TTS модуль Альбамена — подключаем ПОСЛЕДНИМ -->
+<script src="/assets/js/albamen-tts.js"></script>
 </body>
 </html>
