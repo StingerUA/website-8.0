@@ -132,6 +132,22 @@
     viewer.addEventListener('poster-dismissed', () => { clearTimeout(fallback); if (progressFill) progressFill.style.width = '100%'; setTimeout(hideOverlay, 250); });
     viewer.addEventListener('error', showError);
 
+    // ── ФИКС ГОНКИ: заглушка/маленькая модель могла загрузиться
+    // до того как мы повесили слушатели (скрипт грузится async).
+    // Проверяем уже через 300мс и каждые 500мс до 10с.
+    const raceCheck = setInterval(() => {
+      try {
+        // model-viewer выставляет .loaded = true когда модель готова
+        if (viewer.loaded) {
+          clearInterval(raceCheck);
+          clearTimeout(fallback);
+          if (progressFill) progressFill.style.width = '100%';
+          hideOverlay();
+        }
+      } catch (e) { /* ignore */ }
+    }, 300);
+    setTimeout(() => clearInterval(raceCheck), 10000); // максимум 10 сек polling
+
     // Improved fallback: detect file size and adjust timeout accordingly
     // Large files (>20MB) may need more time on slower connections
     let timeoutDuration = 60000; // Default 60 seconds
