@@ -267,15 +267,15 @@
     let ttsActive = false;
 
     // Состояния
-  //  const STATE = {
-  //    idle:    { load: 0, eq: 0, bar: 0, iPlay: 1, iPause: 0, statusCls: '',    statusTxt: '▶ Sesli anlatımı dinlemek için oynat' },
-  //    loading: { load: 1, eq: 0, bar: 0, iPlay: 1, iPause: 0, statusCls: 'on',  statusTxt: 'Yükleniyor...' },
-  //    playing: { load: 0, eq: 1, bar: 1, iPlay: 0, iPause: 1, statusCls: 'on',  statusTxt: 'Oynatılıyor ▶' },
- //     paused:  { load: 0, eq: 0, bar: 1, iPlay: 1, iPause: 0, statusCls: '',    statusTxt: 'Duraklatıldı ⏸' },
- //     stopped: { load: 0, eq: 0, bar: 0, iPlay: 1, iPause: 0, statusCls: '',    statusTxt: 'Durduruldu ⏹' },
- //     tts:     { load: 0, eq: 1, bar: 0, iPlay: 0, iPause: 1, statusCls: 'on',  statusTxt: 'Sesli okunuyor (TTS) ▶' },
- //     error:   { load: 0, eq: 0, bar: 0, iPlay: 1, iPause: 0, statusCls: 'err', statusTxt: 'Ses dosyası bulunamadı — metin okunuyor...' },
- //   };
+    const STATE = {
+      idle:    { load: 0, eq: 0, bar: 0, iPlay: 1, iPause: 0, statusCls: '',    statusTxt: '▶ Sesli anlatımı dinlemek için oynat' },
+      loading: { load: 1, eq: 0, bar: 0, iPlay: 1, iPause: 0, statusCls: 'on',  statusTxt: 'Yükleniyor...' },
+      playing: { load: 0, eq: 1, bar: 1, iPlay: 0, iPause: 1, statusCls: 'on',  statusTxt: 'Oynatılıyor ▶' },
+      paused:  { load: 0, eq: 0, bar: 1, iPlay: 1, iPause: 0, statusCls: '',    statusTxt: 'Duraklatıldı ⏸' },
+      stopped: { load: 0, eq: 0, bar: 0, iPlay: 1, iPause: 0, statusCls: '',    statusTxt: 'Durduruldu ⏹' },
+      tts:     { load: 0, eq: 1, bar: 0, iPlay: 0, iPause: 1, statusCls: 'on',  statusTxt: 'Sesli okunuyor (TTS) ▶' },
+      error:   { load: 0, eq: 0, bar: 0, iPlay: 1, iPause: 0, statusCls: 'err', statusTxt: 'Sesli okunuyor...' },
+    };
 
     function applyState(name) {
       const s = STATE[name];
