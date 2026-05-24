@@ -206,17 +206,18 @@
 </div>`;
   }
 
-  // ── Утилиты ───────────────────────────────────────────────────
+  // ── Язык — только по URL, текст не трогаем ───────────────────
+  function detectLang() {
+    const p = window.location.pathname;
+    if (p.startsWith('/rus/')) return 'ru';
+    if (p.startsWith('/eng/')) return 'en';
+    return 'tr'; // всё остальное — турецкий
+  }
+
   function fmt(s) {
     if (!isFinite(s) || s < 0) return '—:——';
     const m = Math.floor(s / 60), sec = Math.floor(s % 60);
     return m + ':' + String(sec).padStart(2, '0');
-  }
-
-  function detectLang(text) {
-    if (/[а-яёА-ЯЁ]/.test(text)) return 'ru';
-    if (/[ğüşıöçĞÜŞİÖÇ]/.test(text)) return 'tr';
-    return document.documentElement.lang === 'en' ? 'en' : 'tr';
   }
 
   // ── Основная логика ───────────────────────────────────────────
@@ -339,7 +340,7 @@
 
     // ── Фолбэк 1: Google TTS через воркер ─────────────────────
     function fallbackTTS() {
-      const lang = detectLang(title + ' ' + desc);
+      const lang = detectLang();
       const text = (title + '. ' + desc).slice(0, 800);
       ttsActive = true;
       applyState('tts');
@@ -387,8 +388,12 @@
         });
     }
 
-    // ── Фолбэк 2: Браузерный speechSynthesis ──────────────────
+    // ── Фолбэк 2: Браузерный speechSynthesis (только /rus/) ───
     function fallbackBrowser(text, lang) {
+      // Браузерный голос — только на русской версии сайта
+      const isRusPage = window.location.pathname.startsWith('/rus/');
+      if (!isRusPage) { applyState('error'); return; }
+
       if (!window.speechSynthesis) { applyState('error'); return; }
       applyState('tts');
       window.speechSynthesis.cancel();
