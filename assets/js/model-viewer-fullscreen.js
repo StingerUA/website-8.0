@@ -141,8 +141,14 @@
       overlay.appendChild(clone);
       document.body.appendChild(overlay);
 
+      /* Защита от «phantom tap» — блокируем клики первые 600мс после создания кнопки */
+      var btnReady = false;
+      setTimeout(function () { btnReady = true; }, 600);
+
       /* Open */
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', function (e) {
+        /* Блокируем: не от реального пользователя, или слишком рано */
+        if (!e.isTrusted || !btnReady) return;
         syncSrc();
         overlay.classList.add('open');
         document.body.style.overflow = 'hidden';
@@ -168,7 +174,7 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
-    /* Small delay so model-viewer custom element can register */
-    setTimeout(init, 300);
+    /* Small delay so model-viewer custom element can register and phantom taps dissipate */
+    setTimeout(init, 800);
   }
 }());
