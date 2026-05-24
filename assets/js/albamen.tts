@@ -11,7 +11,7 @@
   // ══════════════════════════════════════════════════════
   // НАСТРОЙКИ — отредактируй URL воркера если нужно
   // ══════════════════════════════════════════════════════
-  const ALBAMEN_WORKER_URL = "https://albamen-ai.nncdecdgc.workers.dev";
+  const ALBAMEN_WORKER_URL = "https://divine-flower-a0ae.nncdecdgc.workers.dev";
 
   // Текущее аудио (чтобы останавливать предыдущее)
   let currentAudio = null;
