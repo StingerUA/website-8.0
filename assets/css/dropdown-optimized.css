@@ -490,9 +490,7 @@ html.product-text-black .dropdown-menu button:hover {
     left: auto;
     min-width: min(92vw, 360px);
   }
-  .alien-auth-logged-out .alien-menu-item {
-    width: 100%;
-  }
+  /* width:100% only on true mobile — NOT here, so 3 buttons stay side-by-side on tablet/laptop */
 }
 
 @media (max-width: 1023px) {
