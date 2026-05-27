@@ -1,15 +1,36 @@
 (function () {
+  // Инжектируем стили через <style> с !important — перебивают site.css
+  const style = document.createElement('style');
+  style.textContent = `
+    #star-bg {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+      display: block !important;
+    }
+    body {
+      background-image: none !important;
+    }
+  `;
+  document.head.appendChild(style);
+
   const canvas = document.createElement('canvas');
   canvas.id = 'star-bg';
-  canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:-1;';
-  document.body.prepend(canvas);
+  document.body.appendChild(canvas); // appendChild в конец, не prepend
+
   const ctx = canvas.getContext('2d');
   let W, H, stars;
   const mouse = { x: -999, y: -999 };
+
   function resize() {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
   }
+
   function mkStar() {
     const depth = Math.random();
     return {
@@ -27,11 +48,13 @@
       depth
     };
   }
+
   function init() {
     resize();
     const count = Math.min(Math.floor(W * H / 900), 400);
     stars = Array.from({ length: count }, mkStar);
   }
+
   function draw() {
     ctx.clearRect(0, 0, W, H);
     for (const s of stars) {
@@ -67,6 +90,7 @@
     }
     requestAnimationFrame(draw);
   }
+
   window.addEventListener('mousemove', e => {
     mouse.x = e.clientX; mouse.y = e.clientY;
   });
