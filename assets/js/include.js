@@ -21,9 +21,26 @@ runAfterDomReady(() => {
     _fsScript.defer = true;
     document.head.appendChild(_fsScript);
   }
+
+  // 0c. Audio narration player (SESLİ ANLATIM) on model-viewer pages
+  if (document.querySelector('model-viewer') &&
+      !document.querySelector('script[src*="alba-model-player"]')) {
+    const _mpScript = document.createElement('script');
+    _mpScript.src = '/assets/js/alba-model-player.js';
+    _mpScript.defer = true;
+    document.head.appendChild(_mpScript);
+  }
   
   // 1. ЗАПУСК АНАЛИТИКИ (В первую очередь)
   injectAnalytics();
+
+  // 1b. Google sign-in suggestion prompt (незалогиненным пользователям)
+  if (!document.querySelector('script[src*="google-login-prompt"]')) {
+    const _glpScript = document.createElement('script');
+    _glpScript.src = '/assets/js/google-login-prompt.js';
+    _glpScript.defer = true;
+    document.head.appendChild(_glpScript);
+  }
 
   // Load lang-switch.js dynamically if not present
   if (!document.querySelector('script[src*="lang-switch.js"]')) {
