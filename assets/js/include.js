@@ -21,26 +21,9 @@ runAfterDomReady(() => {
     _fsScript.defer = true;
     document.head.appendChild(_fsScript);
   }
-
-  // 0c. Audio narration player (SESLİ ANLATIM) on model-viewer pages
-  if (document.querySelector('model-viewer') &&
-      !document.querySelector('script[src*="alba-model-player"]')) {
-    const _mpScript = document.createElement('script');
-    _mpScript.src = '/assets/js/alba-model-player.js';
-    _mpScript.defer = true;
-    document.head.appendChild(_mpScript);
-  }
   
   // 1. ЗАПУСК АНАЛИТИКИ (В первую очередь)
   injectAnalytics();
-
-  // 1b. Google sign-in suggestion prompt (незалогиненным пользователям)
-  if (!document.querySelector('script[src*="google-login-prompt"]')) {
-    const _glpScript = document.createElement('script');
-    _glpScript.src = '/assets/js/google-login-prompt.js';
-    _glpScript.defer = true;
-    document.head.appendChild(_glpScript);
-  }
 
   // Load lang-switch.js dynamically if not present
   if (!document.querySelector('script[src*="lang-switch.js"]')) {
@@ -273,6 +256,13 @@ runAfterDomReady(() => {
                 setTimeout(function() { tryInitDropdowns(attempts - 1); }, 80);
               }
             })(15);
+            // Load email/password auth form into the alien dropdown
+            if (!document.querySelector('script[src*="auth-email"]')) {
+              const _aeScript = document.createElement('script');
+              _aeScript.src = '/assets/js/auth-email.js';
+              _aeScript.defer = true;
+              document.head.appendChild(_aeScript);
+            }
             // Re-run checkUser() now that #accountAvatar exists in the DOM
             // (worker-auth.js ran at DOMContentLoaded before the header was injected)
             (function tryCheckUser(attempts) {
@@ -384,6 +374,15 @@ runAfterDomReady(() => {
     const floating = document.createElement('div');
     floating.className = 'ai-floating';
     floating.id = 'ai-floating-global';
+    function _fixFloatingPos() {
+      floating.style.setProperty('position', 'fixed', 'important');
+      floating.style.setProperty('left',     '20px',  'important');
+      floating.style.setProperty('bottom',   '80px',  'important');
+      floating.style.setProperty('z-index',  '2147480000', 'important');
+      if (document.body.lastChild !== floating) document.body.appendChild(floating);
+    }
+    _fixFloatingPos();
+    window.addEventListener('load', _fixFloatingPos, { once: true });
     const avatarSrc = '/assets/images/albamenai.png';
     floating.innerHTML = `
       <div class="ai-hero-avatar" id="ai-avatar-trigger">
@@ -400,6 +399,7 @@ runAfterDomReady(() => {
     toggleBtn.setAttribute('aria-label', isEn ? 'Open AI assistant' : 'AI asistanı aç');
     toggleBtn.innerHTML = `<img src="/assets/images/albamenai.png" alt="AI" style="width: 100%; height: 100%; object-fit: contain;" />`;
     document.body.appendChild(toggleBtn);
+    toggleBtn.style.cssText = 'position:fixed!important;right:20px!important;bottom:80px!important;z-index:2147480001!important;width:54px!important;height:54px!important;border-radius:50%!important;background:linear-gradient(135deg,#00c2ff,#0ea5e9)!important;border:none!important;cursor:pointer!important;overflow:hidden!important;padding:6px!important;display:none!important;';
 
     // Обработчик для открытия/закрытия виджетов
     toggleBtn.addEventListener('click', () => {
@@ -465,6 +465,23 @@ runAfterDomReady(() => {
       </div>
     `;
     document.body.appendChild(panel);
+    // Force position via inline style — must be LAST child to escape stacking context
+    function _fixPanelPos() {
+      panel.style.setProperty('position', 'fixed', 'important');
+      panel.style.setProperty('bottom',   '80px',  'important');
+      panel.style.setProperty('right',    '20px',  'important');
+      panel.style.setProperty('z-index',  '2147481000', 'important');
+      panel.style.setProperty('width',    '380px', 'important');
+      panel.style.setProperty('max-width','92vw',  'important');
+      panel.style.setProperty('height',   '520px', 'important');
+      panel.style.setProperty('max-height','85vh', 'important');
+      // Re-append as last body child to escape any stacking context
+      if (document.body.lastChild !== panel) document.body.appendChild(panel);
+    }
+    _fixPanelPos();
+    window.addEventListener('load', _fixPanelPos, { once: true });
+    // Also fix on scroll (footer scroll-reveal might create new stacking contexts)
+    document.addEventListener('scroll', _fixPanelPos, { passive: true, once: true });
 
     // Ensure panels are hidden by default and attach delegated handlers
     // This prevents accidental auto-open and makes close buttons reliable
